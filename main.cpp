@@ -130,6 +130,12 @@ struct _layer{
     int getManhattan(){
         if (manhattan != -1)
             return manhattan;
+        int sum = 0;
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                sum += abs(id - get<0>(targetPos[unit[i][j].id])) + abs(i - get<1>(targetPos[unit[i][j].id])) + abs(j - get<2>(targetPos[unit[i][j].id]));
+        manhattan = sum;
+        return sum;
     }
 
     void print(){
@@ -140,7 +146,7 @@ struct _layer{
                     cout << endl;
             }
     }
-}layer[N];
+};
 
 struct _fridge{
     _layer layer[N];
@@ -174,5 +180,5 @@ int main(){
     targetId[0][2][1] = 7;
     targetId[0][2][2] = 8;
     initTargetPos();
-    
+    cout << fridge.layer[0].getManhattan() << endl;
 }
