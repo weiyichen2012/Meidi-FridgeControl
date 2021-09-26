@@ -87,19 +87,19 @@ struct _unit{
     void print(){
         switch (this->stage){
             case unitNull:
-                // cout << " ";
+                cout << " ";
                 break;
             
             case unitCar:
-                // cout << "C";
+                cout << "C";
                 break;
 
             case unitContainer:
-                // cout << "T";
+                cout << "T";
                 break;
 
             case unitFull:
-                // cout << "F";
+                cout << "F";
                 break;
         }
         if (this->stage == unitNull)
@@ -151,10 +151,11 @@ struct _layer{
         unit[0][0].stage = unitNull;
     }
 
-    void switchUnit(tuple<int, int> thing, tuple<int, int> null){
+    void switchUnit(tuple<int, int> thing, tuple<int, int> null, bool ifMove = true){
         manhattan = -1;
         // moves.push_back("Move (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ")");
-        moves.push_back("Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]));
+        if (ifMove)
+            moves.push_back("Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]));
 
         _unit tmpUnit = unit[get<0>(thing)][get<1>(thing)];
         unit[get<0>(thing)][get<1>(thing)] = unit[get<0>(null)][get<1>(null)];
@@ -230,23 +231,6 @@ struct cmp{
     }
 };
 
-struct _fridge{
-    _layer layer[N];
-    _fridge(){
-        for (int i = 0; i < N; ++i)
-            layer[i] = _layer(i);
-    }
-
-    void print(){
-        for (int i = 0; i < N; ++i){
-            cout << "layer " << i << ": " << endl;
-            layer[i].print();
-            cout << endl;
-        }
-    }
-
-}fridge;
-
 struct _layerSolver{
     int id;
     priority_queue<_layer, vector<_layer>, cmp> solution;
@@ -261,16 +245,30 @@ struct _layerSolver{
                     targetPos[targetId[id][i][j]] = make_tuple(id, i, j);
     }
 
-    int getSeqNum(int id){
-        //todo
+    int getSeqNum(int num){
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                if (targetId[this->id][i][j] == num)
+                    return (i * N + j);
+        return -1;
     }
 
     bool solvable(_layer layer){
-
+        int reverseSum = 0;
+        for (int i = 0; i < N * N; ++i)
+            for (int j = i + 1; j < N * N; ++j)
+                if (getSeqNum(layer.unitId[j / 3][j % 3]) < getSeqNum(layer.unitId[i / 3][i % 3]))
+                    reverseSum++;
+        return (reverseSum % 2 == 0);
     }
 
-    void solve(_layer start, int id){
+    bool solve(_layer start, int id){
         initTargetPos(id);
+        if (!this->solvable(start)){
+            cout << "In solve, meet an unsolvable puzzle" << endl;
+            return false;
+        }
+        alreadySolution.clear();
         while (!solution.empty()){
             solution.pop();
         }
@@ -295,6 +293,7 @@ struct _layerSolver{
         }
         _layer ans = solution.top();
         ans.printMove();
+        return true;
     }
 
 
@@ -315,18 +314,89 @@ struct _layerSolver{
     }
 }layerSolver;
 
+struct _fridge{
+    _layer layer[N];
+    _fridge(){
+        for (int i = 0; i < N; ++i)
+            layer[i] = _layer(i);
+        layer[0].unit[2][0].stage = unitFull;
+    }
+
+    void prepare(){
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                targetId[2][i][j] = layer[2].unitId[i][j];
+
+        _layer proposeLayer[2] = {this->layer[0], this->layer[1]};
+        for (int z = 0; z < 2; ++z){
+            vector<tuple<int, int>> containerLayer;
+            for (int i = 0; i < N; ++i)
+                for (int j = 0; j < N; ++j)
+                    if (proposeLayer[z].unit[i][j].getStage() == unitContainer)
+                        containerLayer.push_back(make_tuple<int, int>(move(i), move(j)));
+
+            for (int i = 0; i < N; ++i)
+                if (proposeLayer[z].unit[3][i].getStage() != unitContainer){
+                    int minManhattan = N * N;
+                    tuple<int, int> minPos;
+                    vector<tuple<int, int>>::iterator minIt;
+                    for (vector<tuple<int, int>>::iterator it = containerLayer.begin(); it != containerLayer.end(); ++it){
+                        if (abs(get<0>(*it) - 2) + abs(get<1>(*it) - i) < minManhattan){
+                            minManhattan = abs(get<0>(*it) - 2) + abs(get<1>(*it) - i);
+                            minPos = make_tuple<int, int>(move(get<0>(*it)), move(get<1>(*it)));
+                            minIt = it;
+                        }
+                    }
+                    containerLayer.erase(minIt);
+                    proposeLayer[z].switchUnit(make_tuple<int, int>(2, move(i)), minPos);
+                }
+
+            for (int i = 0; i < N; ++i)
+                for (int j = 0; j < N; ++j)
+                    targetId[z][i][j] = proposeLayer[z].unitId[i][j];
+            
+            if (!layerSolver.solvable(layer[z])){
+                cout << "In prepare, unsolvable" << endl;
+                proposeLayer[z].switchUnit(make_tuple<int, int>(2, 0), make_tuple<int, int>(2, 1));
+                targetId[z][2][0] = proposeLayer[z].unitId[2][0];
+                targetId[z][2][1] = proposeLayer[z].unitId[2][1];
+                cout << layerSolver.solvable(layer[z]) << endl;
+            }
+
+            proposeLayer[z].print();
+            cout << endl;
+
+            cout << "Begin solving" << endl;
+            layerSolver.solve(layer[0], z);
+        }
+    }
+
+    void print(){
+        for (int i = 0; i < N; ++i){
+            cout << "layer " << i << ": " << endl;
+            layer[i].print();
+            cout << endl;
+        }
+    }
+
+}fridge;
+
+//todo: why two the same?
+
 int main(){
-    // fridge.print();
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            for (int k = 0; k < N; ++k)
-                targetId[i][j][k] = i * N * N + j * N + k;
-    int t[N * N];
-    t[0 * N + 0] = 0; t[0 * N + 1] = 6; t[0 * N + 2] = 8;
-    t[1 * N + 0] = 1; t[1 * N + 1] = 2; t[1 * N + 2] = 5;
-    t[2 * N + 0] = 7; t[2 * N + 1] = 4; t[2 * N + 2] = 3;
-    _layer testLayer(0);
-    testLayer.changeId(t);
-    layerSolver.solve(testLayer, 0);
+    fridge.print();
+    fridge.prepare();
+
+    // for (int i = 0; i < N; ++i)
+    //     for (int j = 0; j < N; ++j)
+    //         for (int k = 0; k < N; ++k)
+    //             targetId[i][j][k] = i * N * N + j * N + k;
+    // int t[N * N];
+    // t[0 * N + 0] = 0; t[0 * N + 1] = 6; t[0 * N + 2] = 8;
+    // t[1 * N + 0] = 1; t[1 * N + 1] = 2; t[1 * N + 2] = 5;
+    // t[2 * N + 0] = 7; t[2 * N + 1] = 3; t[2 * N + 2] = 4;
+    // _layer testLayer(0);
+    // testLayer.changeId(t);
+    // layerSolver.solve(testLayer, 0);
     cin.get();
 }
