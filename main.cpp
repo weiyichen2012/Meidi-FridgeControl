@@ -144,7 +144,6 @@ struct _layer{
     void changeId(int* inputId){
         for (int i = 0; i < N; ++i)
             for (int j = 0; j < N; ++j){
-                cout << i << " " << j << endl;
                 unitId[i][j] = inputId[i * N + j];
                 unit[i][j].id = inputId[i * N + j];
                 unit[i][j].stage = unitContainer;
@@ -245,29 +244,33 @@ struct _fridge{
             cout << endl;
         }
     }
+
 }fridge;
 
-struct _solver{
+struct _layerSolver{
+    int id;
     priority_queue<_layer, vector<_layer>, cmp> solution;
     set<string> alreadySolution;
 
-    _solver(){
+    _layerSolver(){}
 
-    }
-
-    tuple<int, int, int> *getTargetPos(){
-        return targetPos;
-    }
-
-    void initTargetPos(){
+    void initTargetPos(int id){
+        this->id = id;
         for (int i = 0; i < N; ++i)
             for (int j = 0; j < N; ++j)
-                for (int k = 0; k < N; ++k)
-                    targetPos[targetId[i][j][k]] = make_tuple(i, j, k);
+                    targetPos[targetId[id][i][j]] = make_tuple(id, i, j);
     }
 
-    void solve(_layer start){
-        initTargetPos();
+    int getSeqNum(int id){
+        //todo
+    }
+
+    bool solvable(_layer layer){
+
+    }
+
+    void solve(_layer start, int id){
+        initTargetPos(id);
         while (!solution.empty()){
             solution.pop();
         }
@@ -310,7 +313,7 @@ struct _solver{
             cout << endl;
         }
     }
-}solver;
+}layerSolver;
 
 int main(){
     // fridge.print();
@@ -324,5 +327,6 @@ int main(){
     t[2 * N + 0] = 7; t[2 * N + 1] = 4; t[2 * N + 2] = 3;
     _layer testLayer(0);
     testLayer.changeId(t);
-    solver.solve(testLayer);
+    layerSolver.solve(testLayer, 0);
+    cin.get();
 }
