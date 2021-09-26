@@ -152,11 +152,13 @@ struct _layer{
     }
 
     void switchUnit(tuple<int, int> thing, tuple<int, int> null, bool ifMove = true){
+        // cout << "in switch unit: " << get<0>(thing) << " " << get<1>(thing) << " " << get<0>(null) << " " << get<1>(null) << endl;
         manhattan = -1;
         // moves.push_back("Move (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ")");
-        if (ifMove)
-            moves.push_back("Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]));
-
+        if (ifMove){
+            moves.push_back("Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]) + " " + "Move (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ")");
+            // cout << "Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]) + " " + to_string(unit[get<0>(thing)][get<1>(thing)].getId()) + " " + "Move (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ")" << endl;
+        }
         _unit tmpUnit = unit[get<0>(thing)][get<1>(thing)];
         unit[get<0>(thing)][get<1>(thing)] = unit[get<0>(null)][get<1>(null)];
         unit[get<0>(null)][get<1>(null)] = tmpUnit;
@@ -253,7 +255,8 @@ struct _layerSolver{
         return -1;
     }
 
-    bool solvable(_layer layer){
+    bool solvable(_layer layer, int id){
+        this->id = id;
         int reverseSum = 0;
         for (int i = 0; i < N * N; ++i)
             for (int j = i + 1; j < N * N; ++j)
@@ -264,7 +267,8 @@ struct _layerSolver{
 
     bool solve(_layer start, int id){
         initTargetPos(id);
-        if (!this->solvable(start)){
+        this->id = id;
+        if (!this->solvable(start, id)){
             cout << "In solve, meet an unsolvable puzzle" << endl;
             return false;
         }
@@ -281,7 +285,7 @@ struct _layerSolver{
             if (topLayer.getManhattan() == 0)
                 break;
             solution.pop();
-            cout << "Solving..." << endl;
+            // cout << "Solving..." << endl;
             vector<_layer> neighbors = topLayer.neighbors();
             for (vector<_layer>::iterator it = neighbors.begin(); it != neighbors.end(); it++){
                 if (alreadySolution.find(it->getHash()) == alreadySolution.end()){
@@ -314,12 +318,15 @@ struct _layerSolver{
     }
 }layerSolver;
 
+int storeX[6] = {2, 2, 2, 2, 2, 2};
+int storeY[6] = {0, 1, 2, 0, 1, 2};
+int storeZ[6] = {0, 0, 0, 1, 1, 1};
+
 struct _fridge{
     _layer layer[N];
     _fridge(){
         for (int i = 0; i < N; ++i)
             layer[i] = _layer(i);
-        layer[0].unit[2][0].stage = unitFull;
     }
 
     void prepare(){
@@ -330,13 +337,13 @@ struct _fridge{
         _layer proposeLayer[2] = {this->layer[0], this->layer[1]};
         for (int z = 0; z < 2; ++z){
             vector<tuple<int, int>> containerLayer;
-            for (int i = 0; i < N; ++i)
+            for (int i = 0; i < N - 1; ++i)
                 for (int j = 0; j < N; ++j)
                     if (proposeLayer[z].unit[i][j].getStage() == unitContainer)
                         containerLayer.push_back(make_tuple<int, int>(move(i), move(j)));
 
             for (int i = 0; i < N; ++i)
-                if (proposeLayer[z].unit[3][i].getStage() != unitContainer){
+                if (proposeLayer[z].unit[2][i].getStage() != unitContainer){
                     int minManhattan = N * N;
                     tuple<int, int> minPos;
                     vector<tuple<int, int>>::iterator minIt;
@@ -348,26 +355,85 @@ struct _fridge{
                         }
                     }
                     containerLayer.erase(minIt);
-                    proposeLayer[z].switchUnit(make_tuple<int, int>(2, move(i)), minPos);
+                    proposeLayer[z].switchUnit(make_tuple<int, int>(2, move(i)), minPos, false);
                 }
 
             for (int i = 0; i < N; ++i)
                 for (int j = 0; j < N; ++j)
                     targetId[z][i][j] = proposeLayer[z].unitId[i][j];
             
-            if (!layerSolver.solvable(layer[z])){
-                cout << "In prepare, unsolvable" << endl;
-                proposeLayer[z].switchUnit(make_tuple<int, int>(2, 0), make_tuple<int, int>(2, 1));
+            cout << "initial proposeLayer" << endl;
+            proposeLayer[z].print();
+
+            if (!layerSolver.solvable(layer[z], z)){
+                cout << "Detect unsolvable" << endl;
+                proposeLayer[z].switchUnit(make_tuple<int, int>(2, 0), make_tuple<int, int>(2, 1), false);
                 targetId[z][2][0] = proposeLayer[z].unitId[2][0];
                 targetId[z][2][1] = proposeLayer[z].unitId[2][1];
-                cout << layerSolver.solvable(layer[z]) << endl;
             }
-
+            cout << endl << "Begin solving Prepare layer" << z << ": " << endl << endl;
+            cout << "Current layer: " << endl;
+            layer[z].print();
+            cout << endl << "Proposed layer: " << endl; 
             proposeLayer[z].print();
             cout << endl;
+            layerSolver.solve(layer[z], z);
+            layer[z] = proposeLayer[z];
+        }
+    }
 
-            cout << "Begin solving" << endl;
-            layerSolver.solve(layer[0], z);
+    void storeCargo(int n, int* cargoId, string* cargo){
+        for (int i = 0; i < n; ++i){
+            int id = cargoId[i];
+            layer[storeZ[id]].unit[storeX[id]][storeY[id]].storeCargo(cargo[i]);
+        }
+    }
+
+    tuple<int, int, int> findCargo(string cargo){
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                for (int k = 0; k < N; ++k)
+                    if (layer[i].unit[j][k].getCargo() == cargo)
+                        return make_tuple<int, int, int>(move(i), move(j), move(k));
+        cout << "Error in findCargo, cargo not found" << endl;
+        return make_tuple<int, int, int>(0, 0, 0);
+    }
+
+    void getCargo(int n, string* cargo){
+        bool used[2][3];
+        _layer proposeLayer[2] = {layer[0], layer[1]};
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < N; ++j)
+                used[i][j] = false;
+        for (int i = 0; i < n; ++i){
+            tuple<int, int, int> cargoIndex = findCargo(cargo[i]);
+            int unitX = get<1>(cargoIndex), unitY = get<2>(cargoIndex), unitZ = get<0>(cargoIndex);
+            proposeLayer[unitZ].unit[unitX][unitY].removeCargo();
+            for (int j = 0; j < n; ++j)
+                if (!used[unitZ][j]){
+                    proposeLayer[unitZ].switchUnit(make_tuple<int, int>(2, move(j)), make_tuple<int, int>(move(unitX), move(unitY)), false);
+                    used[unitZ][j] = true;
+                    break;
+                }
+        }
+        for (int z = 0; z < 2; ++z){
+            for (int i = 0; i < N; ++i)
+                for (int j = 0; j < N; ++j)
+                    targetId[z][i][j] = proposeLayer[z].unitId[i][j];
+            
+            if (!layerSolver.solvable(layer[z], z)){
+                proposeLayer[z].switchUnit(make_tuple<int, int>(2, 0), make_tuple<int, int>(2, 1), false);
+                targetId[z][2][0] = proposeLayer[z].unitId[2][0];
+                targetId[z][2][1] = proposeLayer[z].unitId[2][1];
+            }
+            cout << endl << "Begin solving getCargo layer" << z << ": " << endl << endl;
+            cout << "Current layer: " << endl;
+            layer[z].print();
+            cout << endl << "Proposed layer: " << endl; 
+            proposeLayer[z].print();
+            cout << endl;
+            layerSolver.solve(layer[z], z);
+            layer[z] = proposeLayer[z];
         }
     }
 
@@ -385,7 +451,20 @@ struct _fridge{
 
 int main(){
     fridge.print();
+    string cargo[6] = {"Apple", "Banana", "Can", "Deer", "Elephant", "Fan"};
+    int cargoId[6] = {4, 2, 0, 3, 5, 1};
+    fridge.storeCargo(6, cargoId, cargo);
     fridge.prepare();
+    // string cargo1[6] = {"App", "Bana", "Ca", "De", "Eleph", "Fa"};
+    // int cargoId1[6] = {2, 0, 4, 3, 5, 1};
+    // fridge.storeCargo(2, cargoId1, cargo1);
+    // fridge.prepare();
+    fridge.getCargo(3, cargo);
+    fridge.getCargo(3, cargo + 3);
+
+    // fridge.storeCargo(2, cargoId1, cargo1);
+    // fridge.prepare();
+    // fridge.getCargo(1, cargo);
 
     // for (int i = 0; i < N; ++i)
     //     for (int j = 0; j < N; ++j)
