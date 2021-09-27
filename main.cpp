@@ -8,7 +8,7 @@ using namespace std;
 
 #define N 3
 
-int globalTime[N] = {0, 0, 0};
+int globalTime[N + 1] = {0, 0, 0, 0};
 void syncGlobalTime();
 int intLen(int n){
     int sum = 1;
@@ -134,10 +134,10 @@ struct _layer{
         for (int i = 0; i < N; ++i)
             for (int j = 0; j < N; ++j){
                 unitId[i][j] = id * N * N + i * N + j;
-                if (i == 0 && j == 0)
-                    unit[0][0] = _unit(unitNull, unitId[0][0]);
-                else if (i == 0 && j == 1)
-                    unit[0][1] = _unit(unitCar, unitId[0][1]);
+                if (i == 1 && j == 1)
+                    unit[i][j] = _unit(unitNull, unitId[i][j]);
+                else if (i == 0 && j == ((id) % 2))
+                    unit[0][(id) % 2] = _unit(unitCar, unitId[0][(id) % 2]);
                 else
                     unit[i][j] = _unit(unitContainer, unitId[i][j]);
             }
@@ -278,8 +278,12 @@ struct _layerSolver{
         int reverseSum = 0;
         for (int i = 0; i < N * N; ++i)
             for (int j = i + 1; j < N * N; ++j)
-                if (getSeqNum(layer.unitId[j / 3][j % 3]) < getSeqNum(layer.unitId[i / 3][i % 3]))
+                if (layer.unit[i / 3][i % 3].getStage() != unitNull && layer.unit[j / 3][j % 3].getStage() != unitNull && getSeqNum(layer.unitId[j / 3][j % 3]) < getSeqNum(layer.unitId[i / 3][i % 3])){
+                    // cout << i << j << endl;
                     reverseSum++;
+                }
+        // cout << "in solvable: " << reverseSum << endl;
+        // layer.print();
         return (reverseSum % 2 == 0);
     }
 
@@ -300,6 +304,8 @@ struct _layerSolver{
             // this->printSolver();
             // cin.get();
             _layer topLayer = solution.top();
+            // topLayer.print();cout << endl << topLayer.getManhattan() << endl;
+            // cin.get();
             if (topLayer.getManhattan() == 0)
                 break;
             solution.pop();
@@ -340,8 +346,12 @@ int storeX[6] = {2, 2, 2, 2, 2, 2};
 int storeY[6] = {0, 1, 2, 0, 1, 2};
 int storeZ[6] = {0, 0, 0, 1, 1, 1};
 
+int liftCarY[2] = {0, 1};
+int liftCargoY[2] = {1, 0};
+
 struct _fridge{
     _layer layer[N];
+    vector<tuple<int, string>> moves;
     _fridge(){
         for (int i = 0; i < N; ++i)
             layer[i] = _layer(i);
@@ -410,9 +420,9 @@ struct _fridge{
         while (it[0] != layer[0].moves.end() || it[1] != layer[1].moves.end()){
             cout << startTime << ": " << endl;
             for (int z = 0; z < 2; ++z)
-                if (get<0>(*(it[z])) >= startTime){
-                    if (get<1>(*(it[z]))[0] != '-')
-                        cout << "    " << (get<1>(*(it[z]))) << endl;
+                if (it[z] != layer[z].moves.end() && get<0>(*(it[z])) >= startTime){
+                    // if (get<1>(*(it[z]))[0] != '-')
+                    cout << "    " << (get<1>(*(it[z]))) << endl;
                     it[z]++;
                 }
             startTime++;
@@ -446,6 +456,7 @@ struct _fridge{
                 used[i][j] = false;
         for (int i = 0; i < n; ++i){
             tuple<int, int, int> cargoIndex = findCargo(cargo[i]);
+            // cout << cargo[i] << " cargoIndex: " << get<0>(cargoIndex) << get<1>(cargoIndex) << get<2>(cargoIndex) << endl;
             int unitX = get<1>(cargoIndex), unitY = get<2>(cargoIndex), unitZ = get<0>(cargoIndex);
             proposeLayer[unitZ].unit[unitX][unitY].removeCargo();
             for (int j = 0; j < n; ++j)
@@ -497,7 +508,139 @@ struct _fridge{
     }
 
     void exchangeFloorWithUp(int layerId){
+        if (liftCarY[0] == 0){
+            liftCarY[0] = 1; liftCarY[1] = 0;
+            liftCargoY[0] = 0; liftCargoY[1] = 1;
+        }
+        else{
+            liftCarY[0] = 0; liftCarY[1] = 1;
+            liftCargoY[0] = 1; liftCargoY[1] = 0;
+        }
+        _unit tmpUnit = layer[layerId].unit[0][0];
+        layer[layerId].unit[0][0] = layer[layerId + 1].unit[0][0];
+        layer[layerId + 1].unit[0][0] = tmpUnit;
+
+        tmpUnit = layer[layerId].unit[0][1];
+        layer[layerId].unit[0][1] = layer[layerId + 1].unit[0][1];
+        layer[layerId + 1].unit[0][1] = tmpUnit;
+
+        for (int z = layerId; z < layerId + 2; ++z)
+            for (int j = 0; j < 2; ++j)
+                layer[z].unitId[0][j] = layer[z].unit[0][j].id;
         
+        moves.push_back(make_tuple<int, string>(move(globalTime[N]), "    Vertical Exchange Layer " + to_string(layerId) + " with Layer " + to_string(layerId + 1)));
+        syncGlobalTime();
+    }
+
+    //dir : 1 -> up, -1 -> down
+    void liftCargo(int dir, string cargo){
+        tuple<int, int, int> cargoIndex = findCargo(cargo);
+        int unitX = get<1>(cargoIndex), unitY = get<2>(cargoIndex), unitZ[2] = {get<0>(cargoIndex), get<0>(cargoIndex) + dir};
+        cout << unitX << " " << unitY << " " << unitZ[0] << " " << unitZ[1] << endl;
+        int startTime = globalTime[0];
+        _layer proposeLayer[2] = {layer[unitZ[0]], layer[unitZ[1]]};
+        
+        for (int z = 0; z < 2; ++z){
+            bool ifFound = false;
+            for (int i = 0; i < N; ++i){
+                for (int j = 0; j < N; ++j)
+                    if (proposeLayer[z].unit[i][j].getStage() == unitCar){
+                        cout << "liftCarY " << z << " " << i << " " << j << endl;
+                        cout << "Move to " << 0 << " " << liftCarY[unitZ[z] % 2] << endl;
+                        ifFound = true;
+                        proposeLayer[z].switchUnit(make_tuple<int, int>(move(i), move(j)), make_tuple<int, int>(0, move(liftCarY[unitZ[z] % 2])));
+                        break;
+                    }
+                if (ifFound)
+                    break;
+            }
+        }
+
+        proposeLayer[1].print();
+
+        proposeLayer[0].switchUnit(make_tuple<int, int>(move(unitX), move(unitY)), make_tuple<int, int>(0, move(liftCargoY[unitZ[0] % 2])));
+        if (proposeLayer[1].unit[0][liftCargoY[unitZ[1] % 2]].getStage() != unitContainer){
+            bool ifFound = false;
+            for (int i = 0; i < N; ++i){
+                if (ifFound)
+                    break;
+                for (int j = 0; j < N; ++j)
+                    if (proposeLayer[1].unit[i][j].getStage() == unitContainer){
+                        ifFound = true;
+                        proposeLayer[1].switchUnit(make_tuple<int, int>(move(i), move(j)), make_tuple<int, int>(0, move(liftCargoY[unitZ[1] % 2])));
+                        break;
+                    }
+            }
+        }
+
+
+        for (int z = 0; z < 2; ++z){
+            for (int i = 0; i < N; ++i)
+                for (int j = 0; j < N; ++j)
+                    for (int k = 0; k < N; ++k)
+                        targetId[k][i][j] = layer[k].unitId[i][j];
+            
+            for (int i = 0; i < N; ++i)
+                for (int j = 0; j < N; ++j)
+                    targetId[unitZ[z]][i][j] = proposeLayer[z].unitId[i][j];
+
+            #define try1X1 2
+            #define try1Y1 0
+            #define try1X2 2
+            #define try1Y2 1
+            if (!layerSolver.solvable(layer[unitZ[z]], unitZ[z])){
+                if (proposeLayer[z].unit[try1X1][try1Y1].getStage() != unitNull && proposeLayer[z].unit[try1X2][try1Y2].getStage() != unitNull){
+                    proposeLayer[z].switchUnit(make_tuple<int, int>(try1X1, try1Y1), make_tuple<int, int>(try1X2, try1Y2), false);
+                    targetId[unitZ[z]][try1X1][try1Y1] = proposeLayer[z].unitId[try1X1][try1Y1];
+                    targetId[unitZ[z]][try1X2][try1Y2] = proposeLayer[z].unitId[try1X2][try1Y2];
+                }
+                else{
+                    cout << "using backup!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+                    proposeLayer[z].switchUnit(make_tuple<int, int>(1, 2), make_tuple<int, int>(0, 2), false);
+                    targetId[unitZ[z]][1][2] = proposeLayer[z].unitId[1][2];
+                    targetId[unitZ[z]][0][2] = proposeLayer[z].unitId[0][2];
+                }
+            }
+            cout << endl << "Begin solving liftCargo's prepare layer" << unitZ[z] << ": " << endl << endl;
+            cout << "Current layer: " << endl;
+            layer[unitZ[z]].print();
+            cout << endl << "Proposed layer: " << endl; 
+            proposeLayer[z].print();
+            cout << endl;
+            layer[unitZ[z]] = layerSolver.solve(layer[unitZ[z]], unitZ[z]);
+            layer[unitZ[z]].moves.push_back(make_tuple<int, string>(-1, "------------Finish liftCargo Prepare------------"));
+            layer[unitZ[z]].spawnTime();
+            // cout << "----------------Printing moves----------------" << endl;
+            // layer[z].printMove(startTime);
+        }
+        vector<tuple<int, string>>::iterator it[N] = {layer[unitZ[0]].moves.begin(), layer[unitZ[1]].moves.begin()};
+        for (int z = 0; z < 2; ++z){
+            while (get<0>(*(it[z])) < startTime)
+                it[z]++;
+        }
+        while (it[0] != layer[unitZ[0]].moves.end() || it[1] != layer[unitZ[1]].moves.end()){
+            cout << startTime << ": " << endl;
+            for (int z = 0; z < 2; ++z)
+                if (it[z] != layer[unitZ[z]].moves.end() && get<0>(*(it[unitZ[z]])) >= startTime){
+                    if (get<1>(*(it[z]))[0] != '-')
+                        cout << "    " << (get<1>(*(it[z]))) << endl;
+                    it[z]++;
+                }
+            startTime++;
+        }
+        syncGlobalTime();
+        if (dir == 1)
+            exchangeFloorWithUp(unitZ[0]);
+        else
+            exchangeFloorWithUp(unitZ[1]);
+        vector<tuple<int, string>>::iterator fridgeIt = moves.begin();
+        for (;fridgeIt != moves.end(); ++fridgeIt){
+            if (get<0>(*fridgeIt) >= startTime){
+                cout << get<0>(*fridgeIt) << ": " << endl << "    " << (get<1>(*(fridgeIt))) << endl;
+            }
+            else
+                cout << "opps" << get<0>(*fridgeIt);
+        }
     }
 
     void print(){
@@ -512,10 +655,10 @@ struct _fridge{
 
 void syncGlobalTime(){
     int maxTime = -1;
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < N + 1; ++i)
         maxTime = max(maxTime, globalTime[i]);
     
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < N + 1; ++i)
         globalTime[i] = maxTime;
 }
 
@@ -524,6 +667,7 @@ int main(){
     cout << "Input help/h for helps" << endl;
     string inputString;
     while (getline(cin, inputString)){
+        cout << inputString << endl;
         string splitMsg[30];
         int splitMsgId = 0;
         for (int i = 0; i < inputString.size(); ++i)
@@ -554,6 +698,11 @@ int main(){
         else if (splitMsg[0] == "get"){
             int n = atoi(splitMsg[1].c_str());
             fridge.getCargo(n, splitMsg + 2);
+        }
+        else if (splitMsg[0] == "lift"){
+            int dir = atoi(splitMsg[1].c_str());
+            fridge.liftCargo(dir, splitMsg[2]);
+            // fridge.print();
         }
         else
             cout << "Command not known" << endl;

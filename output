@@ -1,0 +1,36 @@
+0: 
+    Horizontal Move 3 ... (1, 0, 0) -> (0, 0, 0)
+1: 
+    Horizontal Move 6 ... (2, 0, 0) -> (1, 0, 0)
+2: 
+    Horizontal Move 7 ... (2, 1, 0) -> (2, 0, 0)
+3: 
+    Horizontal Move 4 ... (1, 1, 0) -> (2, 1, 0)
+4: 
+    Horizontal Move 6 ... (1, 0, 0) -> (1, 1, 0)
+5: 
+    Horizontal Move 7 ... (2, 0, 0) -> (1, 0, 0)
+6: 
+    Horizontal Move 4 ... (2, 1, 0) -> (2, 0, 0)
+7: 
+    Horizontal Move 6 ... (1, 1, 0) -> (2, 1, 0)
+8: 
+    Horizontal Move 7 ... (1, 0, 0) -> (1, 1, 0)
+9: 
+    Horizontal Move 3 ... (0, 0, 0) -> (1, 0, 0)
+10: 
+    Horizontal Move 1 ... (0, 1, 0) -> (0, 0, 0)
+11: 
+    Horizontal Move 7 ... (1, 1, 0) -> (0, 1, 0)
+12: 
+    Horizontal Move 6 ... (2, 1, 0) -> (1, 1, 0)
+13: 
+    Horizontal Move 4 ... (2, 0, 0) -> (2, 1, 0)
+14: 
+    Horizontal Move 3 ... (1, 0, 0) -> (2, 0, 0)
+15: 
+    Horizontal Move 6 ... (1, 1, 0) -> (1, 0, 0)
+16: 
+    Horizontal Move 7 ... (0, 1, 0) -> (1, 1, 0)
+17: 
+    Horizontal Move 1 ... (0, 0, 0) -> (0, 1, 0)
