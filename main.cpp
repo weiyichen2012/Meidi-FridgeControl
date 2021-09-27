@@ -29,7 +29,7 @@ struct _unit{
     string cargo;//store cargo info
 
     _unit(){}
-    _unit(int stage, int id, string cargo = ""){
+    _unit(int stage, int id, string cargo = "~"){
         this->stage = stage;
         this->id = id;
         this->cargo = cargo;
@@ -158,7 +158,8 @@ struct _layer{
         manhattan = -1;
         // moves.push_back("Move (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ")");
         if (ifMove){
-            moves.push_back(make_tuple<int, string>(-1, "Horizontal Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]) + " ... (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ", " + to_string(this->id) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ", " + to_string(this->id) + ")"));
+            // moves.push_back(make_tuple<int, string>(-1, "Horizontal Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]) + " ... (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ", " + to_string(this->id) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ", " + to_string(this->id) + ")"));
+            moves.push_back(make_tuple<int, string>(-1, to_string(unitId[get<0>(thing)][get<1>(thing)])));
             // globalTime[this->id]++;
             // cout << "Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]) + " " + to_string(unit[get<0>(thing)][get<1>(thing)].getId()) + " " + "Move (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ")" << endl;
         }
@@ -326,9 +327,7 @@ struct _layerSolver{
 
 
     void printSolver(){
-        cout << "!" << endl;
         priority_queue<_layer, vector<_layer>, cmp> cpSolution = solution;
-        cout << "?" << endl;
         int n = 0;
         cout << "Printing Solutions" << endl;
         while (!cpSolution.empty()){
@@ -395,37 +394,38 @@ struct _fridge{
             // proposeLayer[z].print();
 
             if (!layerSolver.solvable(layer[z], z)){
-                cout << "Detect unsolvable" << endl;
+                // cout << "Detect unsolvable" << endl;
                 proposeLayer[z].switchUnit(make_tuple<int, int>(2, 0), make_tuple<int, int>(2, 1), false);
                 targetId[z][2][0] = proposeLayer[z].unitId[2][0];
                 targetId[z][2][1] = proposeLayer[z].unitId[2][1];
             }
-            cout << endl << "Begin solving Prepare layer" << z << ": " << endl << endl;
-            cout << "Current layer: " << endl;
-            layer[z].print();
-            cout << endl << "Proposed layer: " << endl; 
-            proposeLayer[z].print();
-            cout << endl;
+            // cout << endl << "Begin solving Prepare layer" << z << ": " << endl << endl;
+            // cout << "Current layer: " << endl;
+            // layer[z].print();
+            // cout << endl << "Proposed layer: " << endl; 
+            // proposeLayer[z].print();
+            // cout << endl;
             layer[z] = layerSolver.solve(layer[z], z);
-            layer[z].moves.push_back(make_tuple<int, string>(-1, "----------------Finish prepare----------------"));
+            // layer[z].moves.push_back(make_tuple<int, string>(-1, "----------------Finish prepare----------------"));
             layer[z].spawnTime();
             // cout << "Printing moves..." << endl;
             // layer[z].printMove(startTime);
         }
         vector<tuple<int, string>>::iterator it[N] = {layer[0].moves.begin(), layer[1].moves.begin()};
         for (int z = 0; z < 2; ++z){
-            while (get<0>(*(it[z])) < startTime)
+            while (it[z] != layer[z].moves.end() && get<0>(*(it[z])) < startTime)
                 it[z]++;
         }
         while (it[0] != layer[0].moves.end() || it[1] != layer[1].moves.end()){
-            cout << startTime << ": " << endl;
+            // cout << startTime << ": " << endl;
             for (int z = 0; z < 2; ++z)
                 if (it[z] != layer[z].moves.end() && get<0>(*(it[z])) >= startTime){
                     // if (get<1>(*(it[z]))[0] != '-')
-                    cout << "    " << (get<1>(*(it[z]))) << endl;
+                    cout << (get<1>(*(it[z]))) << " ";
                     it[z]++;
                 }
             startTime++;
+            cout << "^" << endl;
         }
         syncGlobalTime();
     }
@@ -476,14 +476,14 @@ struct _fridge{
                 targetId[z][2][0] = proposeLayer[z].unitId[2][0];
                 targetId[z][2][1] = proposeLayer[z].unitId[2][1];
             }
-            cout << endl << "Begin solving getCargo layer" << z << ": " << endl << endl;
-            cout << "Current layer: " << endl;
-            layer[z].print();
-            cout << endl << "Proposed layer: " << endl; 
-            proposeLayer[z].print();
-            cout << endl;
+            // cout << endl << "Begin solving getCargo layer" << z << ": " << endl << endl;
+            // cout << "Current layer: " << endl;
+            // layer[z].print();
+            // cout << endl << "Proposed layer: " << endl; 
+            // proposeLayer[z].print();
+            // cout << endl;
             layer[z] = layerSolver.solve(layer[z], z);
-            layer[z].moves.push_back(make_tuple<int, string>(-1, "----------------Finish getCargo----------------"));
+            // layer[z].moves.push_back(make_tuple<int, string>(-1, "----------------Finish getCargo----------------"));
             int startTime = globalTime[z];
             layer[z].spawnTime();
             // cout << "----------------Printing moves----------------" << endl;
@@ -491,18 +491,19 @@ struct _fridge{
         }
         vector<tuple<int, string>>::iterator it[N] = {layer[0].moves.begin(), layer[1].moves.begin()};
         for (int z = 0; z < 2; ++z){
-            while (get<0>(*(it[z])) < startTime)
+            while (it[z] != layer[z].moves.end() && get<0>(*(it[z])) < startTime)
                 it[z]++;
         }
         while (it[0] != layer[0].moves.end() || it[1] != layer[1].moves.end()){
-            cout << startTime << ": " << endl;
+            // cout << startTime << ": " << endl;
             for (int z = 0; z < 2; ++z)
-                if (get<0>(*(it[z])) >= startTime){
+                if (it[z] != layer[z].moves.end() && (get<0>(*(it[z])) >= startTime)){
                     if (get<1>(*(it[z]))[0] != '-')
-                        cout << "    " << (get<1>(*(it[z]))) << endl;
+                        cout << (get<1>(*(it[z]))) << " ";
                     it[z]++;
                 }
             startTime++;
+            cout << "^" << endl;
         }
         syncGlobalTime();
     }
@@ -528,7 +529,7 @@ struct _fridge{
             for (int j = 0; j < 2; ++j)
                 layer[z].unitId[0][j] = layer[z].unit[0][j].id;
         
-        moves.push_back(make_tuple<int, string>(move(globalTime[N]), "    Vertical Exchange Layer " + to_string(layerId) + " with Layer " + to_string(layerId + 1)));
+        moves.push_back(make_tuple<int, string>(move(globalTime[N]), "V " + to_string(layerId) + " "));
         syncGlobalTime();
     }
 
@@ -536,7 +537,7 @@ struct _fridge{
     void liftCargo(int dir, string cargo){
         tuple<int, int, int> cargoIndex = findCargo(cargo);
         int unitX = get<1>(cargoIndex), unitY = get<2>(cargoIndex), unitZ[2] = {get<0>(cargoIndex), get<0>(cargoIndex) + dir};
-        cout << unitX << " " << unitY << " " << unitZ[0] << " " << unitZ[1] << endl;
+        // cout << unitX << " " << unitY << " " << unitZ[0] << " " << unitZ[1] << endl;
         int startTime = globalTime[0];
         _layer proposeLayer[2] = {layer[unitZ[0]], layer[unitZ[1]]};
         
@@ -545,8 +546,8 @@ struct _fridge{
             for (int i = 0; i < N; ++i){
                 for (int j = 0; j < N; ++j)
                     if (proposeLayer[z].unit[i][j].getStage() == unitCar){
-                        cout << "liftCarY " << z << " " << i << " " << j << endl;
-                        cout << "Move to " << 0 << " " << liftCarY[unitZ[z] % 2] << endl;
+                        // cout << "liftCarY " << z << " " << i << " " << j << endl;
+                        // cout << "Move to " << 0 << " " << liftCarY[unitZ[z] % 2] << endl;
                         ifFound = true;
                         proposeLayer[z].switchUnit(make_tuple<int, int>(move(i), move(j)), make_tuple<int, int>(0, move(liftCarY[unitZ[z] % 2])));
                         break;
@@ -556,7 +557,7 @@ struct _fridge{
             }
         }
 
-        proposeLayer[1].print();
+        // proposeLayer[1].print();
 
         proposeLayer[0].switchUnit(make_tuple<int, int>(move(unitX), move(unitY)), make_tuple<int, int>(0, move(liftCargoY[unitZ[0] % 2])));
         if (proposeLayer[1].unit[0][liftCargoY[unitZ[1] % 2]].getStage() != unitContainer){
@@ -595,37 +596,38 @@ struct _fridge{
                     targetId[unitZ[z]][try1X2][try1Y2] = proposeLayer[z].unitId[try1X2][try1Y2];
                 }
                 else{
-                    cout << "using backup!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+                    // cout << "using backup!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
                     proposeLayer[z].switchUnit(make_tuple<int, int>(1, 2), make_tuple<int, int>(0, 2), false);
                     targetId[unitZ[z]][1][2] = proposeLayer[z].unitId[1][2];
                     targetId[unitZ[z]][0][2] = proposeLayer[z].unitId[0][2];
                 }
             }
-            cout << endl << "Begin solving liftCargo's prepare layer" << unitZ[z] << ": " << endl << endl;
-            cout << "Current layer: " << endl;
-            layer[unitZ[z]].print();
-            cout << endl << "Proposed layer: " << endl; 
-            proposeLayer[z].print();
-            cout << endl;
+            // cout << endl << "Begin solving liftCargo's prepare layer" << unitZ[z] << ": " << endl << endl;
+            // cout << "Current layer: " << endl;
+            // layer[unitZ[z]].print();
+            // cout << endl << "Proposed layer: " << endl; 
+            // proposeLayer[z].print();
+            // cout << endl;
             layer[unitZ[z]] = layerSolver.solve(layer[unitZ[z]], unitZ[z]);
-            layer[unitZ[z]].moves.push_back(make_tuple<int, string>(-1, "------------Finish liftCargo Prepare------------"));
+            // layer[unitZ[z]].moves.push_back(make_tuple<int, string>(-1, "------------Finish liftCargo Prepare------------"));
             layer[unitZ[z]].spawnTime();
             // cout << "----------------Printing moves----------------" << endl;
             // layer[z].printMove(startTime);
         }
         vector<tuple<int, string>>::iterator it[N] = {layer[unitZ[0]].moves.begin(), layer[unitZ[1]].moves.begin()};
         for (int z = 0; z < 2; ++z){
-            while (get<0>(*(it[z])) < startTime)
+            while (it[z] != layer[unitZ[z]].moves.end() && get<0>(*(it[unitZ[z]])) < startTime)
                 it[z]++;
         }
         while (it[0] != layer[unitZ[0]].moves.end() || it[1] != layer[unitZ[1]].moves.end()){
-            cout << startTime << ": " << endl;
+            // cout << startTime << ": " << endl;
             for (int z = 0; z < 2; ++z)
                 if (it[z] != layer[unitZ[z]].moves.end() && get<0>(*(it[unitZ[z]])) >= startTime){
                     if (get<1>(*(it[z]))[0] != '-')
-                        cout << "    " << (get<1>(*(it[z]))) << endl;
+                        cout << (get<1>(*(it[z]))) << " ";
                     it[z]++;
                 }
+            cout << "^" << endl;
             startTime++;
         }
         syncGlobalTime();
@@ -636,10 +638,10 @@ struct _fridge{
         vector<tuple<int, string>>::iterator fridgeIt = moves.begin();
         for (;fridgeIt != moves.end(); ++fridgeIt){
             if (get<0>(*fridgeIt) >= startTime){
-                cout << get<0>(*fridgeIt) << ": " << endl << "    " << (get<1>(*(fridgeIt))) << endl;
+                cout << (get<1>(*(fridgeIt))) << "^" << endl;
             }
-            else
-                cout << "opps" << get<0>(*fridgeIt);
+            // else
+                // cout << "opps" << get<0>(*fridgeIt);
         }
     }
 
@@ -662,12 +664,28 @@ void syncGlobalTime(){
         globalTime[i] = maxTime;
 }
 
+void initIndex(){
+    for (int z = 0; z < N; ++z)
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j){
+                cin >> fridge.layer[z].unit[i][j].id >> fridge.layer[z].unit[i][j].stage >> fridge.layer[z].unit[i][j].cargo;
+                fridge.layer[z].unitId[i][j] = fridge.layer[z].unit[i][j].id;
+            }
+}
+
+void printIndex(){
+    for (int z = 0; z < N; ++z)
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                cout << fridge.layer[z].unit[i][j].id << " " << fridge.layer[z].unit[i][j].stage << " " << fridge.layer[z].unit[i][j].cargo << endl;
+}
+
 int main(){
-    cout << "Welcome to fridge controlSystem" << endl;
-    cout << "Input help/h for helps" << endl;
+    // cout << "Welcome to fridge controlSystem" << endl;
+    // cout << "Input help/h for helps" << endl;
     string inputString;
     while (getline(cin, inputString)){
-        cout << inputString << endl;
+        // cout << inputString << endl;
         string splitMsg[30];
         int splitMsgId = 0;
         for (int i = 0; i < inputString.size(); ++i)
@@ -693,7 +711,7 @@ int main(){
             for (int i = 0; i < n; ++i)
                 itemId[i] = atoi(splitMsg[2 + i].c_str());
             fridge.storeCargo(n, itemId, splitMsg + n + 2);
-            cout << "finish store" << endl;
+            // cout << "finish store" << endl;
         }
         else if (splitMsg[0] == "get"){
             int n = atoi(splitMsg[1].c_str());
@@ -704,8 +722,14 @@ int main(){
             fridge.liftCargo(dir, splitMsg[2]);
             // fridge.print();
         }
-        else
-            cout << "Command not known" << endl;
+        else if (splitMsg[0] == "init"){
+            initIndex();
+        }
+        else if (splitMsg[0] == "print"){
+            printIndex();
+        }
+        else if (inputString != "")
+            cout << "Command not known: " << inputString << endl;
     }
 
     // fridge.print();

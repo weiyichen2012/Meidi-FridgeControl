@@ -1,15 +1,15 @@
 init
-0 1 ~
-1 2 ~
-2 2 ~
-3 2 ~
-4 0 ~
-5 2 ~
-6 3 Apple
-7 2 ~
-8 2 ~
 9 2 ~
 10 1 ~
+2 2 ~
+6 3 Apple
+4 0 ~
+5 2 ~
+3 2 ~
+7 2 ~
+1 2 ~
+0 1 ~
+8 3 Banana
 11 2 ~
 12 2 ~
 13 0 ~
@@ -26,7 +26,5 @@ init
 24 2 ~
 25 2 ~
 26 2 ~
-prepare
-store 1 2 Banana
-lift 1 Banana
 get 1 Banana
+print

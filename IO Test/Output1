@@ -1,12 +1,15 @@
-init
+3 ^
+6 ^
+7 ^
+3 ^
 0 1 ~
 1 2 ~
 2 2 ~
-3 2 ~
+6 3 Apple
 4 0 ~
 5 2 ~
-6 3 Apple
 7 2 ~
+3 2 ~
 8 2 ~
 9 2 ~
 10 1 ~
@@ -26,7 +29,3 @@ init
 24 2 ~
 25 2 ~
 26 2 ~
-prepare
-store 1 2 Banana
-lift 1 Banana
-get 1 Banana
