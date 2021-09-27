@@ -1,0 +1,5 @@
+store 3 0 1 3 A0 A1 A2
+prepare
+store 1 0 A3
+get 1 A1
+get 1 A2
