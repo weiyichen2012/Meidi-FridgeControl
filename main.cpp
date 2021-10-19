@@ -159,7 +159,7 @@ struct _layer{
         // moves.push_back("Move (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ")");
         if (ifMove){
             // moves.push_back(make_tuple<int, string>(-1, "Horizontal Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]) + " ... (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ", " + to_string(this->id) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ", " + to_string(this->id) + ")"));
-            moves.push_back(make_tuple<int, string>(-1, to_string(unitId[get<0>(thing)][get<1>(thing)])));
+            moves.push_back(make_tuple<int, string>(-1, to_string(id * 9 + get<0>(thing) * 3 + get<1>(thing))));
             // globalTime[this->id]++;
             // cout << "Move " + to_string(unitId[get<0>(thing)][get<1>(thing)]) + " " + to_string(unit[get<0>(thing)][get<1>(thing)].getId()) + " " + "Move (" + to_string(get<0>(thing)) + ", " + to_string(get<1>(thing)) + ") -> (" + to_string(get<0>(null)) + ", " + to_string(get<1>(null)) + ")" << endl;
         }
